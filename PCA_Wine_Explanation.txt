@@ -1,0 +1,372 @@
+PCA ON WINE DATASET - PRACTICAL EXAM NOTES
+=========================================
+
+AIM
+---
+To apply Principal Component Analysis (PCA) to the Wine dataset and reduce its many
+features to two principal components. The two components can be plotted to inspect
+how the two wine classes are distributed.
+
+PROGRAM
+-------
+
+# 1. Import libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+
+# 2. Load dataset
+df = pd.read_csv("https://media.geeksforgeeks.org/wp-content/uploads/Wine.csv")
+
+# 3. Separate features and target
+X = df.drop("Wine", axis=1)
+y = df["Wine"]
+
+# 4. Split dataset
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# 5. Standardize the data
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 6. Apply PCA (reduce to 2 components)
+pca = PCA(n_components=2)
+X_train_pca = pca.fit_transform(X_train)
+X_test_pca = pca.transform(X_test)
+
+# 7. Display variance captured by PCA
+print("Explained Variance:", pca.explained_variance_ratio_)
+print("Total Variance:", sum(pca.explained_variance_ratio_))
+
+# 8. Train Logistic Regression model
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train_pca, y_train)
+
+# 9. Predict and evaluate
+y_pred = model.predict(X_test_pca)
+print(classification_report(y_test, y_pred))
+
+# 10. Visualize principal components
+plt.scatter(X_train_pca[:, 0], X_train_pca[:, 1],
+            c=y_train, cmap="viridis")
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("PCA - Wine Dataset")
+plt.colorbar(label="Wine Class")
+plt.show()
+
+
+LINE-BY-LINE EXPLANATION
+------------------------
+
+1. IMPORT LIBRARIES
+
+import pandas as pd
+- Pandas is used to load and work with the dataset in table form.
+- 'pd' is the short name (alias) used for pandas.
+
+import matplotlib.pyplot as plt
+- Matplotlib is used to draw the scatter plot of the two principal components.
+- 'plt' is the short name used for pyplot.
+
+from sklearn.model_selection import train_test_split
+- Imports the function that divides the dataset into training data and testing data.
+
+from sklearn.preprocessing import StandardScaler
+- Imports StandardScaler, which brings feature values to a comparable scale.
+
+from sklearn.decomposition import PCA
+- Imports the PCA algorithm from Scikit-learn.
+
+from sklearn.linear_model import LogisticRegression
+- Imports a classification algorithm. It predicts the wine class using the two PCA features.
+
+from sklearn.metrics import classification_report
+- Imports a function that reports precision, recall, F1-score and support.
+
+2. LOAD THE DATASET
+
+df = pd.read_csv("https://media.geeksforgeeks.org/wp-content/uploads/Wine.csv")
+- Reads the Wine.csv file into a Pandas DataFrame named df.
+- A DataFrame is a table containing rows and columns.
+- Internet access is required when the CSV is loaded directly from this URL.
+- If the file is downloaded locally, use: pd.read_csv("Wine.csv")
+
+3. SEPARATE FEATURES AND TARGET
+
+X = df.drop("Wine", axis=1)
+- X contains the input features, such as alcohol, ash, magnesium and other measurements.
+- drop("Wine", axis=1) removes the Wine column from the input data.
+- axis=1 means a column. axis=0 would mean a row.
+
+ y = df["Wine"]
+- y contains the answer/target column called Wine.
+- It identifies the wine class (the class labels in this dataset).
+- X is the input; y is the output we want the classifier to predict.
+
+4. SPLIT THE DATASET
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+- Splits the data into training and testing parts.
+- 80% of the records are used for training and 20% for testing.
+- X_train and y_train are used to learn the model.
+- X_test and y_test are used to check the model on unseen records.
+- random_state=42 makes the split repeatable. The same seed gives the same split.
+- stratify=y keeps approximately the same class proportions in both parts.
+
+5. STANDARDIZE THE DATA
+
+scaler = StandardScaler()
+- Creates a StandardScaler object.
+
+X_train = scaler.fit_transform(X_train)
+- fit calculates the mean and standard deviation of each training feature.
+- transform uses those values to standardize the training features.
+- Standardization gives each feature approximately mean 0 and standard deviation 1.
+
+X_test = scaler.transform(X_test)
+- Applies the training-set scaling values to the test data.
+- Do not fit the scaler again on the test data. This avoids data leakage and keeps
+  the training and test data on the same scale.
+
+WHY IS STANDARDIZATION IMPORTANT?
+- Wine measurements use different units and ranges. For example, alcohol and magnesium
+  do not have the same numerical scale.
+- PCA looks for directions with high variance. A feature with a large numerical scale
+  could dominate PCA if the data is not standardized.
+
+6. APPLY PCA
+
+pca = PCA(n_components=2)
+- Creates a PCA object that will keep only two principal components.
+- The original dataset has many input features; PCA represents them using two new
+  combined features.
+
+X_train_pca = pca.fit_transform(X_train)
+- fit learns the principal component directions from the training data.
+- transform converts the training data into its new two-component representation.
+- The result has two columns: Principal Component 1 and Principal Component 2.
+
+X_test_pca = pca.transform(X_test)
+- Converts test data using the exact same PCA directions learned from training data.
+- Do not use fit_transform on the test data. It would learn different directions and
+  make the training and test representations inconsistent.
+
+7. EXPLAINED VARIANCE
+
+print("Explained Variance:", pca.explained_variance_ratio_)
+- Prints the proportion of the total variance captured by each principal component.
+- Example: [0.35, 0.20] would mean PC1 captures 35% and PC2 captures 20% of the variance.
+- These example values are only to explain the meaning; actual values come from the run.
+
+print("Total Variance:", sum(pca.explained_variance_ratio_))
+- Adds the variance proportions of PC1 and PC2.
+- If the result is 0.60, the two components together retain 60% of the variance.
+- A larger value means the two components preserve more of the variation in the data.
+
+8. TRAIN LOGISTIC REGRESSION
+
+model = LogisticRegression(max_iter=1000)
+- Creates a Logistic Regression classification model.
+- max_iter=1000 allows enough iterations for the model to converge.
+
+model.fit(X_train_pca, y_train)
+- Trains the classifier using the two PCA components and their known class labels.
+- PCA performs dimensionality reduction; Logistic Regression performs classification.
+
+9. PREDICT AND EVALUATE
+
+y_pred = model.predict(X_test_pca)
+- Predicts the wine class for every test record.
+
+print(classification_report(y_test, y_pred))
+- Compares predicted classes (y_pred) with the actual classes (y_test).
+- Precision: Of the records predicted as a class, how many were correct?
+- Recall: Of the actual records in a class, how many did the model find?
+- F1-score: Harmonic mean of precision and recall; balances both measures.
+- Support: Number of actual test records in each class.
+
+10. VISUALIZE THE PRINCIPAL COMPONENTS
+
+plt.scatter(X_train_pca[:, 0], X_train_pca[:, 1],
+            c=y_train, cmap="viridis")
+- Draws one dot for each training record.
+- X_train_pca[:, 0] selects the first component for the horizontal axis.
+- X_train_pca[:, 1] selects the second component for the vertical axis.
+- c=y_train colours dots according to their wine class.
+- cmap="viridis" selects the colour map.
+
+plt.xlabel("Principal Component 1")
+- Names the horizontal axis.
+
+plt.ylabel("Principal Component 2")
+- Names the vertical axis.
+
+plt.title("PCA - Wine Dataset")
+- Adds a title to the graph.
+
+plt.colorbar(label="Wine Class")
+- Displays a colour scale for the wine class labels.
+
+plt.show()
+- Displays the graph.
+
+
+IMPORTANT THEORY: WHAT IS PCA?
+------------------------------
+
+PCA stands for Principal Component Analysis.
+
+PCA is an UNSUPERVISED MACHINE LEARNING technique used for dimensionality reduction.
+It changes many possibly related input features into a smaller number of new features
+called principal components, while trying to preserve as much data variance as possible.
+
+Example in this practical:
+- Before PCA: the wine data contains many measurement features.
+- After PCA with n_components=2: each wine record is represented by only two values.
+- These two values can be plotted on a 2D graph.
+
+HOW PCA WORKS (BASIC STEPS)
+
+1. Standardize the features so they are on comparable scales.
+2. Calculate how the features vary together (the covariance structure).
+3. Find the principal directions of the data. Mathematically, these are eigenvectors
+   of the covariance matrix (or an equivalent decomposition).
+4. The corresponding eigenvalues indicate how much variance each direction captures.
+5. Rank the directions from highest variance to lowest variance.
+6. Keep the required number of directions, such as the first two.
+7. Project the original data onto those directions to create the principal components.
+
+IMPORTANT TERMS
+
+- Feature: An input column, such as alcohol or magnesium.
+- Target/label: The class to predict; here it is the Wine column.
+- Dimensionality: The number of features/columns used to represent each record.
+- Principal Component (PC): A new feature formed as a linear combination of the original
+  features. PC1 captures the most variance; PC2 captures the most remaining variance and
+  is perpendicular (orthogonal) to PC1.
+- Eigenvector: Gives the direction of a principal component.
+- Eigenvalue: Indicates the variance captured in that direction.
+- Explained variance ratio: The fraction of total variance captured by a component.
+- Projection: Representing each data record using its coordinates along the selected
+  principal component directions.
+- Dimensionality reduction: Reducing the number of features while retaining useful
+  information.
+
+WHY USE PCA?
+
+- Reduces the number of features.
+- Makes high-dimensional data easier to visualize.
+- Can reduce noise and remove redundant information.
+- Can make some machine learning models faster.
+- Can help reveal patterns or clusters in data.
+
+LIMITATIONS OF PCA
+
+- PCA is unsupervised: it does not use the Wine labels when selecting components.
+- PCA preserves variance, not necessarily the information that best separates classes.
+- Some information can be lost when features are reduced.
+- Principal components can be harder to interpret than the original features.
+- Two components do not always separate the classes clearly.
+
+IMPORTANT DIFFERENCE: PCA VS LOGISTIC REGRESSION
+
+PCA:
+- Used for dimensionality reduction.
+- Does not need class labels to learn its components.
+- Creates new features (principal components).
+
+Logistic Regression:
+- Used for classification.
+- Uses class labels during training.
+- Predicts which wine class a record belongs to.
+
+In this program, PCA reduces the features to two dimensions. Logistic Regression then
+uses those two dimensions to predict the Wine class. The scatter plot colours the points
+using the known labels so we can visually inspect the class distribution.
+
+WHY DO WE USE fit_transform() AND transform()?
+
+- fit(): learns values/directions from data.
+- transform(): applies already learned values/directions to data.
+- fit_transform(): learns and applies in one step.
+- For a train/test workflow, fit the scaler and PCA on training data only, then use
+  transform() on test data. This prevents information from the test set influencing
+  preprocessing and keeps both sets in the same coordinate system.
+
+
+LIKELY VIVA QUESTIONS AND SHORT ANSWERS
+---------------------------------------
+
+1. What is PCA?
+   PCA is an unsupervised dimensionality reduction technique that converts original
+   features into principal components while preserving as much variance as possible.
+
+2. What is the full form of PCA?
+   Principal Component Analysis.
+
+3. Why is PCA used?
+   To reduce the number of features, simplify data, speed up processing and visualize
+   high-dimensional data.
+
+4. Is PCA supervised or unsupervised?
+   Unsupervised. It does not need target labels to find principal components.
+
+5. What is a principal component?
+   A new feature formed as a linear combination of the original features.
+
+6. Which component captures the maximum variance?
+   The first principal component (PC1).
+
+7. What does n_components=2 mean?
+   It tells PCA to retain two principal components.
+
+8. Why do we standardize before PCA?
+   Because features have different scales, and large-scale features could dominate
+   the variance calculation.
+
+9. What does explained_variance_ratio_ show?
+   The fraction of the dataset's variance captured by each retained component.
+
+10. What is the purpose of train_test_split?
+    It separates data for model training and evaluation on unseen records.
+
+11. Why is transform() used on test data?
+    To apply the same scaler/PCA directions learned from training data.
+
+12. What is Logistic Regression doing in this program?
+    It classifies wine records using the two PCA components.
+
+13. What is a scatter plot showing here?
+    Each point is a wine record positioned by PC1 and PC2; its colour represents its
+    known wine class.
+
+14. Does PCA guarantee that red and white wine will be separated?
+    No. PCA maximizes retained variance, not class separation. The plot lets us inspect
+    how well the classes appear separated in the two-component view.
+
+15. What is data leakage?
+    It is when information from test data influences training. Fitting the scaler or PCA
+    on the full dataset before splitting can cause leakage.
+
+
+EXAM REMINDERS
+--------------
+
+- Remember the sequence: Load -> Separate X and y -> Split -> Scale -> PCA -> Train ->
+  Predict -> Evaluate -> Plot.
+- PCA is the dimensionality reduction algorithm. Logistic Regression is only added to
+  demonstrate classification using the reduced features.
+- n_components=2 means many original features become two principal-component features.
+- Fit scaler and PCA on training data; transform the test data using the fitted objects.
+- The total explained variance is the sum of the two printed explained variance ratios.
+- Your actual accuracy and variance values depend on the dataset and the train/test split.
